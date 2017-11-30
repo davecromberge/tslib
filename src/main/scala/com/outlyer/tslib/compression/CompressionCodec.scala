@@ -7,7 +7,7 @@ import scodec.bits.BitVector
 import scodec.codecs.{double, list}
 import scodec.{Attempt, Codec, DecodeResult, Err, SizeBound}
 
-object ValuesCodec extends Codec[List[TimeSeriesValue]] {
+object CompressionCodec extends Codec[List[TimeSeriesValue]] {
 
   private lazy val floatCodec: Codec[TimeSeriesValue] = double.xmap(TimeSeriesValue.apply, _.v)
   private lazy val dummyCodec: Codec[List[TimeSeriesValue]] = list(floatCodec)

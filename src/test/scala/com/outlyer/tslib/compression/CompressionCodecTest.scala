@@ -3,12 +3,12 @@ package com.outlyer.tslib.compression
 import com.outlyer.tslib.TimeSeriesValue
 import org.scalacheck.{Arbitrary, Gen}
 
-final class ValuesCodecTest extends CodecSpec {
+final class CompressionCodecTest extends CodecSpec {
     import ValuesCodecTestData._
 
-    "the ValuesCodec class" should {
+    "the CompressionCodec class" should {
       "handle compression and decompression for timeseries values" in {
-        forAll { vs: List[TimeSeriesValue] => roundTrip(ValuesCodec, vs) }
+        forAll { vs: List[TimeSeriesValue] => roundTrip(CompressionCodec, vs) }
       }
     }
   }
