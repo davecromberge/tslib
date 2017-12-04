@@ -24,6 +24,16 @@ final class CompressionCodecTest extends CodecSpec with Matchers {
       encoded.length should be (80)
     }
 
+    "use 10 prefox with data only when numbers differ only within the same precision" in {
+      val first = TimeSeriesValue(9.0)
+      val second = TimeSeriesValue(12.0)
+      val third = TimeSeriesValue(10.0)
+      val encoded = CompressionCodec.encode(List(first, second, third)).require
+      encoded.slice(64, 80).toBin should be ("11" + "01100" + "000011" + "101")
+      encoded.slice(80, 85).toBin should be ("10" + "110")
+      encoded.length should be (85)
+    }
+
     "handle compression and decompression for timeseries values" in {
       forAll { vs: List[TimeSeriesValue] => roundTrip(CompressionCodec, vs) }
     }
