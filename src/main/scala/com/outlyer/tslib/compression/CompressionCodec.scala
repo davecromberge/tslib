@@ -11,6 +11,10 @@ object CompressionCodec extends Codec[List[TimeSeriesValue]] {
   override def sizeBound = SizeBound.unknown
 
   override def encode(values: List[TimeSeriesValue]): Attempt[BitVector] = {
+    if (values.isEmpty) {
+      return Attempt.successful(BitVector.empty)
+    }
+
     val first = values.head.v
     var buf:BitVector = double.encode(first).require
     var prev = buf
@@ -19,10 +23,10 @@ object CompressionCodec extends Codec[List[TimeSeriesValue]] {
       val curr = double.encode(x.v).require
 
       if (curr == prev) {
-        buf = buf :+ false
+        buf = buf ++ bin"0"
 
       } else {
-        buf = buf :+ true
+        buf = buf ++ bin"1"
         val xored = prev ^ curr
         val left_zeros = xored.indexOfSlice(bin"1")
         val right_zeros = xored.reverse.indexOfSlice(bin"1")
@@ -33,7 +37,8 @@ object CompressionCodec extends Codec[List[TimeSeriesValue]] {
         //  buf = buf :+ false ++ value_bits
         //} else {
 
-        val offset_field = int8.encode(left_zeros.toInt).require.slice(3, 8)
+        val offset = math.min(left_zeros, 31)
+        val offset_field = int8.encode(offset.toInt).require.slice(3, 8)
         val size = 64 - left_zeros - right_zeros
         val size_field = int8.encode(size.toInt).require.slice(2, 8)
 
@@ -66,11 +71,15 @@ object CompressionCodec extends Codec[List[TimeSeriesValue]] {
           val (offset_field, v3) = v2.splitAt(5)
           val offset = int8.decode(offset_field.padLeft(8)).require.value.toLong
           val (size_field, v4) = v3.splitAt(6)
-          val size = int8.decode(size_field.padLeft(8)).require.value.toLong
+          val size = int8.decode(size_field.padLeft(8)).require.value.toLong match {
+            case 0 => 64
+            case x => x
+          }
           val (xored_part, v5) = v4.splitAt(size)
           val xored = (BitVector.fill(offset)(false) ++ xored_part).padRight(64)
           val value_bin = double.encode(prev).require ^ xored
           val value = double.decode(value_bin).require.value
+
           decode_rest(v5, value :: acc)
         }
       }
